@@ -29,12 +29,11 @@ jobs:
           ISSUE_NUMBER=${{ github.event.issue.number }}
           ISSUE_TITLE="${{ github.event.issue.title }}"
 
-          # Python으로 슬러그 처리 + Unicode 정규화 (NFC)
           SLUG=$(python3 -c "
 import re, unicodedata2
 title = '''$ISSUE_TITLE'''
-title = unicodedata2.normalize('NFC', title)   # 조합형 → 완성형
-title = re.sub(r'[^\w가-힣ㄱ-ㅎㅏ-ㅣ-]', '', title)  # 특수문자 제거
+title = unicodedata2.normalize('NFC', title)
+title = re.sub(r'[^\w가-힣ㄱ-ㅎㅏ-ㅣ-]', '', title)
 title = title.strip().replace(' ', '-')
 print(title[:50])
           ")
@@ -56,3 +55,4 @@ print(title[:50])
         uses: peter-evans/close-issue@v2
         with:
           comment: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
