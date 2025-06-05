@@ -29,7 +29,7 @@ jobs:
           ISSUE_NUMBER=${{ github.event.issue.number }}
           ISSUE_TITLE="${{ github.event.issue.title }}"
 
-          SLUG=$(python3 -c "import re, unicodedata2; title='''$ISSUE_TITLE'''; title=unicodedata2.normalize('NFC', title); title=re.sub(r'[^\w가-힣ㄱ-ㅎㅏ-ㅣ-]', '', title); title=title.strip().replace(' ', '-'); print(title[:50])")
+          SLUG=$(python3 -c "import re, unicodedata2; title='''$ISSUE_TITLE'''; title=unicodedata2.normalize('NFC', title); title=re.sub(r'[^\w가-힣ㄱ-ㅎㅏ-ㅣ-]', '', title); title=re.sub(r'\s+', '-', title.strip()); print(title[:50])")
 
           BRANCH_NAME="issue-${ISSUE_NUMBER}-${SLUG}"
           echo "브랜치 이름: $BRANCH_NAME"
