@@ -21,7 +21,7 @@ jobs:
       - name: Install Python dependencies
         run: pip install unicodedata2
 
-      - name: Clone and create branch
+      - name: Clone repo and create branch
         run: |
           git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} repo
           cd repo
@@ -29,14 +29,7 @@ jobs:
           ISSUE_NUMBER=${{ github.event.issue.number }}
           ISSUE_TITLE="${{ github.event.issue.title }}"
 
-          SLUG=$(python3 -c "
-import re, unicodedata2
-title = '''$ISSUE_TITLE'''
-title = unicodedata2.normalize('NFC', title)
-title = re.sub(r'[^\w가-힣ㄱ-ㅎㅏ-ㅣ-]', '', title)
-title = title.strip().replace(' ', '-')
-print(title[:50])
-          ")
+          SLUG=$(python3 -c "import re, unicodedata2; title='''$ISSUE_TITLE'''; title=unicodedata2.normalize('NFC', title); title=re.sub(r'[^\w가-힣ㄱ-ㅎㅏ-ㅣ-]', '', title); title=title.strip().replace(' ', '-'); print(title[:50])")
 
           BRANCH_NAME="issue-${ISSUE_NUMBER}-${SLUG}"
           echo "브랜치 이름: $BRANCH_NAME"
