@@ -29,7 +29,7 @@ jobs:
           ISSUE_NUMBER=${{ github.event.issue.number }}
           ISSUE_TITLE="${{ github.event.issue.title }}"
 
-          SLUG=$(python3 -c "import re, unicodedata2; title='''$ISSUE_TITLE'''; title=unicodedata2.normalize('NFC', title); title=re.sub(r'[^\w가-힣ㄱ-ㅎㅏ-ㅣ-]', '', title); title=re.sub(r'\s+', '-', title.strip()); print(title[:50])")
+          SLUG=$(python3 -c "import re, unicodedata2; title='''$ISSUE_TITLE'''; title=unicodedata2.normalize('NFC', title); title=re.sub(r'[^\w가-힣ㄱ-ㅎㅏ-ㅣ\s-]', '', title); title=re.sub(r'\s+', '-', title.strip()); print(title[:50])")
 
           BRANCH_NAME="issue-${ISSUE_NUMBER}-${SLUG}"
           echo "브랜치 이름: $BRANCH_NAME"
@@ -44,8 +44,18 @@ jobs:
     permissions:
       issues: write
     steps:
-      - name: Close linked issues in PR body
+      - name: Extract issue number from branch name
+        id: extract
+        run: |
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          echo "PR branch: $BRANCH_NAME"
+          ISSUE_NUMBER=$(echo "$BRANCH_NAME" | grep -oP '(?<=issue-)\d+')
+          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Close linked issue
         uses: peter-evans/close-issue@v2
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ steps.extract.outputs.issue_number }}
           comment: false
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          close-reason: completed
