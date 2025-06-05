@@ -1,0 +1,58 @@
+name: Issue Automation
+
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    types: [closed]
+
+jobs:
+  create-branch:
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Set up Git
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Install Python dependencies
+        run: pip install unicodedata2
+
+      - name: Clone and create branch
+        run: |
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} repo
+          cd repo
+
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+
+          # Python으로 슬러그 처리 + Unicode 정규화 (NFC)
+          SLUG=$(python3 -c "
+import re, unicodedata2
+title = '''$ISSUE_TITLE'''
+title = unicodedata2.normalize('NFC', title)   # 조합형 → 완성형
+title = re.sub(r'[^\w가-힣ㄱ-ㅎㅏ-ㅣ-]', '', title)  # 특수문자 제거
+title = title.strip().replace(' ', '-')
+print(title[:50])
+          ")
+
+          BRANCH_NAME="issue-${ISSUE_NUMBER}-${SLUG}"
+          echo "브랜치 이름: $BRANCH_NAME"
+
+          git fetch origin develop
+          git checkout -b "$BRANCH_NAME" origin/develop
+          git push origin "$BRANCH_NAME"
+
+  close-issue:
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Close linked issues in PR body
+        uses: peter-evans/close-issue@v2
+        with:
+          comment: false
