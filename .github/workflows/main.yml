@@ -38,19 +38,20 @@ jobs:
           git checkout -b "$BRANCH_NAME" origin/develop
           git push origin "$BRANCH_NAME"
 
-  close-issue:
+  close-issue-and-delete-branch:
     if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
+      contents: write
       issues: write
     steps:
-      - name: Extract issue number from branch name
+      - name: Extract issue number and branch name
         id: extract
         run: |
           BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
-          echo "PR branch: $BRANCH_NAME"
           ISSUE_NUMBER=$(echo "$BRANCH_NAME" | grep -oP '(?<=issue-)\d+')
           echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
 
       - name: Close linked issue
         uses: peter-evans/close-issue@v2
@@ -59,3 +60,16 @@ jobs:
           issue-number: ${{ steps.extract.outputs.issue_number }}
           comment: false
           close-reason: completed
+
+      - name: Delete merged branch (if not main or develop)
+        run: |
+          BRANCH_NAME="${{ steps.extract.outputs.branch_name }}"
+          if [[ "$BRANCH_NAME" != "main" && "$BRANCH_NAME" != "develop" ]]; then
+            echo "Deleting branch: $BRANCH_NAME"
+            curl -X DELETE \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/${{ github.repository }}/git/refs/heads/$BRANCH_NAME
+          else
+            echo "Branch $BRANCH_NAME is protected and will not be deleted."
+          fi
